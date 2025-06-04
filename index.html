@@ -174,7 +174,7 @@
   <script>
     // Cambios visuales por hora
     function cambiarFondoPorHora() {
-      const hora = new Date().getHours();
+      const hora = /*new Date().getHours()*/23;
       const body = document.body;
       const nubes = document.getElementById("nubes");
       if (hora >= 6 && hora < 12) {
@@ -189,11 +189,12 @@
       } else {
         body.style.background = "linear-gradient(#0f172a, #1e293b)";
         nubes.style.filter = "brightness(0.4)";
+        
       }
     }
 
     function mostrarElementosCielo() {
-      const hora = new Date().getHours();
+      const hora = /*new Date().getHours()*/23;
       const sol = document.querySelector(".sol");
       const luna = document.querySelector(".luna");
       const estrellas = document.getElementById("estrellas");
