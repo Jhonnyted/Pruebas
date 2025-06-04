@@ -301,8 +301,8 @@
         const easedProgress = 1 - Math.pow(1 - this.progress, 3);
         const finX = this.x + Math.cos(this.angulo) * this.longitud * easedProgress;
         const finY = this.y - Math.sin(this.angulo) * this.longitud * easedProgress;
-        let anchoBase = this.profundidad === 0 ? 30 : Math.max(this.anchoPadre * 0.7, 1.5);
-        let anchoPunta = Math.max(anchoBase * 0.6, 1);
+        let anchoBase = this.profundidad === 0 ? 30 : Math.max(this.anchoPadre * 0.8, 1.5);
+        let anchoPunta = Math.max(anchoBase * 0.4, 1);
         let color = this.profundidad === 0 ? "#4b2e05" : `rgb(60,${50 + this.profundidad * 15},20)`;
         dibujarTrapezoide(this.x + desplazamientoX, this.y, finX + desplazamientoX, finY, anchoBase, anchoPunta, color);
         if (this.progress >= 1 && !this.expandidas && this.profundidad < 6) {
