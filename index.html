@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Poly Art 3D Final Definitivo</title>
+<title>Poly Art 3D Interactivo</title>
 <style>
 html, body { margin:0; height:100%; background: linear-gradient(180deg,#fff,#f3f4f6); overflow:hidden; font-family:sans-serif; }
 #top-emojis { position:absolute; top:10px; left:0; right:0; text-align:center; font-size:28px; pointer-events:none; z-index:10; user-select:none; }
@@ -38,19 +38,15 @@ scene.add(dirLight);
 
 let meshes=[],currentImageIndex=0;
 let cols=10, rows=10;
-let spherical={theta:0.5, phi:Math.PI/2-0.25, radius:400};
-let sphericalTarget={...spherical};
-const damping=0.12;
-let isPointerDown=false, lastPointer={x:0,y:0};
 
-// Para animación de dispersión inicial
-let animationProgress=0; // 0 = alineados, 1 = dispersos
+let isPointerDown=false, lastPointer={x:0,y:0};
+let rotationX=0, rotationY=0;
 
 function getPointer(e){ return e.touches?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY}; }
 function onPointerDown(e){isPointerDown=true; lastPointer=getPointer(e);}
-function onPointerMove(e){ if(!isPointerDown) return; const p=getPointer(e); const dx=p.x-lastPointer.x, dy=p.y-lastPointer.y; lastPointer=p; sphericalTarget.theta-=dx*0.006; sphericalTarget.phi-=dy*0.006; sphericalTarget.phi=Math.max(0.01, Math.min(Math.PI-0.99, sphericalTarget.phi)); }
+function onPointerMove(e){ if(!isPointerDown) return; const p=getPointer(e); rotationY += (p.x-lastPointer.x)*0.005; rotationX += (p.y-lastPointer.y)*0.005; rotationX=Math.max(-Math.PI/2, Math.min(Math.PI/2, rotationX)); lastPointer=p;}
 function onPointerUp(){isPointerDown=false;}
-function onWheel(e){e.preventDefault(); sphericalTarget.radius+=e.deltaY*0.6; sphericalTarget.radius=Math.max(120,Math.min(1200,sphericalTarget.radius));}
+function onWheel(e){e.preventDefault(); camera.position.z += e.deltaY*0.5; camera.position.z=Math.max(200, Math.min(1000,camera.position.z));}
 
 renderer.domElement.addEventListener('mousedown',onPointerDown);
 window.addEventListener('mousemove',onPointerMove);
@@ -60,7 +56,7 @@ window.addEventListener('touchmove',onPointerMove,{passive:true});
 window.addEventListener('touchend',onPointerUp);
 renderer.domElement.addEventListener('wheel',onWheel,{passive:false});
 
-// Construir Poly Art 3D con dispersión inicial
+// Construir Poly Art interactivo
 function buildFromImage(img, c, r){
   meshes.forEach(m=>{scene.remove(m); if(m.geometry)m.geometry.dispose(); if(m.material)m.material.dispose();});
   meshes=[];
@@ -91,18 +87,20 @@ function buildFromImage(img, c, r){
         const mat=new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide, transparent:true});
         const mesh=new THREE.Mesh(geom, mat);
 
-        // Posición base (alineada para formar la imagen)
+        // Posición base alineada para formar la imagen desde el ángulo perfecto
         const baseX=startX+(i+0.5)*cellW;
         const baseY=startY-(j+0.5)*cellH;
         const baseZ=0;
 
-        // Offset disperso inicial aleatorio
-        const offsetX=(Math.random()-0.5)*60;
-        const offsetY=(Math.random()-0.5)*60;
-        const offsetZ=(Math.random()-0.5)*60;
+        // Offset aleatorio para dispersión inicial
+        const offsetX=(Math.random()-0.5)*80;
+        const offsetY=(Math.random()-0.5)*80;
+        const offsetZ=(Math.random()-0.5)*80;
 
         mesh.userData.basePos=new THREE.Vector3(baseX, baseY, baseZ);
         mesh.userData.offsetPos=new THREE.Vector3(offsetX, offsetY, offsetZ);
+
+        // Posición inicial dispersa
         mesh.position.copy(mesh.userData.basePos.clone().add(mesh.userData.offsetPos));
         meshes.push(mesh);
         scene.add(mesh);
@@ -111,9 +109,6 @@ function buildFromImage(img, c, r){
 
     camera.position.set(0,0,Math.max(planeW,planeH)*1.5);
     camera.lookAt(0,0,0);
-
-    // Iniciar animación dispersión inicial
-    animationProgress=1;
   });
 }
 
@@ -125,30 +120,25 @@ function resize(){
 }
 window.addEventListener('resize',resize);
 
-function updateCamera(){
-  spherical.theta += (sphericalTarget.theta - spherical.theta)*damping;
-  spherical.phi += (sphericalTarget.phi - spherical.phi)*damping;
-  spherical.radius += (sphericalTarget.radius - spherical.radius)*damping;
-  const r=spherical.radius;
-  camera.position.set(r*Math.sin(spherical.phi)*Math.sin(spherical.theta),
-                      r*Math.cos(spherical.phi),
-                      r*Math.sin(spherical.phi)*Math.cos(spherical.theta));
-  camera.lookAt(0,0,0);
-}
-
 function render(){
   requestAnimationFrame(render);
-  updateCamera();
 
-  // Animación dispersión -> alineado
-  if(animationProgress>0){
-    animationProgress-=0.02;
-    meshes.forEach(mesh=>{
-      const pos=mesh.userData.basePos.clone().add(mesh.userData.offsetPos.clone().multiplyScalar(animationProgress));
-      mesh.position.copy(pos);
-    });
-  }
+  // Aplicar rotación interactiva
+  const cosX=Math.cos(rotationX), sinX=Math.sin(rotationX);
+  const cosY=Math.cos(rotationY), sinY=Math.sin(rotationY);
 
+  meshes.forEach(mesh=>{
+    const pos=mesh.userData.basePos.clone().add(mesh.userData.offsetPos);
+    // Rotación alrededor del centro para efecto interactivo
+    const x=pos.x, y=pos.y, z=pos.z;
+    mesh.position.set(
+      cosY*x + sinY*z,
+      -sinX*sinY*x + cosX*y - sinX*cosY*z,
+      -cosX*sinY*x + sinX*y + cosX*cosY*z
+    );
+  });
+
+  camera.lookAt(0,0,0);
   renderer.render(scene,camera);
 }
 
