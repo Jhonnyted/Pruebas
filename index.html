@@ -1,526 +1,508 @@
-<!DOCTYPE html>
-<meta name="robots" content="noindex">
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://fonts.googleapis.com/css2?family=Chewy&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <title>Árbol con animación</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Poly Art Rotativo — Viewer</title>
   <style>
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      width: 100%;
-      height: 100%;
-      font-family: sans-serif;
+    :root{
+      --bg1: #ffffff;
+      --bg2: #f3f4f6; /* suave gris claro */
+      --muted: #64748b;
+      --accent: #60a5fa;
     }
-
-    .nubes {
-      position: absolute;
-      top: 50px;
-      left: 0;
-      width: 100%;
-      height: 150px;
-       /* background: url('https://pngimg.com/uploads/cloud/cloud_PNG112218.png') repeat-x;
-      background-size: contain;
-      animation: moverNubes 90s linear infinite; */
-      z-index: 0;
-      opacity: 1;
-      filter: brightness(1);
-      transition: filter 1s ease;
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#0b1220}
+    #app{height:100vh;display:flex;flex-direction:column}
+    #top-emojis{
+      position:absolute;
+      left:0; right:0;
+      top:10px;
+      display:flex;
+      justify-content:center;
+      pointer-events:none; /* no intercept clicks */
+      z-index:10;
+      font-size:28px;
+      user-select:none;
+      -webkit-user-select:none;
     }
-
-   /* @keyframes moverNubes {
-      from { background-position-x: 0; }
-      to { background-position-x: 1000px; }
-    } */
-
-    .sol, .luna {
-      position: absolute;
-      top: 80px;
-      right: 60px;
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      z-index: 0;
-      opacity: 0;
-      transition: opacity 1s ease;
+    #stage{flex:1;position:relative;overflow:hidden}
+    #three-container{width:100%;height:100%}
+    .ui-bottom{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:10px 14px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.5));
+      backdrop-filter: blur(6px);
+      border-top: 1px solid rgba(0,0,0,0.04);
+      flex-shrink:0;
+      overflow-x:auto;
     }
-
-    .sol {
-      background: radial-gradient(circle, #ffe259, #ffa751);
-      box-shadow: 0 0 30px 10px rgba(255, 204, 0, 0.4);
+    .thumb{
+      position:relative;
+      width:72px;
+      height:56px;
+      border-radius:8px;
+      box-shadow: 0 6px 14px rgba(2,6,23,0.06);
+      overflow:hidden;
+      cursor:pointer;
+      flex:0 0 auto;
+      border:2px solid transparent;
     }
-
-    .luna {
-      background: radial-gradient(circle, #f4f4f4, #bbb);
-      box-shadow: 0 0 20px 6px rgba(255, 255, 255, 0.2);
+    .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .thumb.active{border-color:rgba(96,165,250,0.85)}
+    .controls{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-left:10px;
+      flex:0 0 auto;
     }
-
-    
-    #cielo-estrellado {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 40%; /* Ajusta según la altura del cielo */
-  z-index: 0;
-  pointer-events: none;
-}
-    
-    
-    /*.estrellas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 20%;
-      background-image:
-    radial-gradient(white 1.5px, transparent 1.5px),
-    radial-gradient(white 2px, transparent 2px),
-    radial-gradient(white 1px, transparent 1px);
-  background-size: 30px 30px, 50px 50px, 80px 80px;
-      opacity: 0;
-      z-index: 0;
-      animation: parpadeoEstrellas 2s infinite ease-in-out alternate;
-      transition: opacity 1s ease;
-      pointer-events: none;
+    .controls label{font-size:13px;color:var(--muted);display:block}
+    .slider{width:140px}
+    button{padding:8px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:white;cursor:pointer}
+    @media (max-width:600px){
+      .thumb{width:60px;height:46px}
+      #top-emojis{font-size:22px; top:6px}
+      .slider{width:100px}
     }
-
-    @keyframes parpadeoEstrellas {
-      from { opacity: 0.3; }
-      to { opacity: 0.6; }
-    } */
-
-    .texto {
-      position: absolute;
-      top: 30%;
-      left: 5%;
-      max-width: 400px;
-      font-size: 1.8rem;
-      color: #ff0004;
-      z-index: 10;
-      white-space: pre-wrap;
-      line-height: 1.4;
-      text-align: left;
-      opacity: 0;
-      transition: opacity 1s ease;
-      font-family: 'Chewy', cursive;
+    /* small helper overlay when aligned */
+    #hint{
+      position:absolute;
+      left:12px;
+      bottom:80px;
+      background:rgba(255,255,255,0.85);
+      padding:8px 10px;border-radius:8px;color:#0b1220;font-size:13px;
+      box-shadow:0 6px 12px rgba(2,6,23,0.06);
+      z-index:9;
     }
-
-    .aparecer {
-      opacity: 1;
-    }
-
-    .contador {
-      position: absolute;
-      bottom: 20px;
-      width: 100%;
-      text-align: center;
-      font-size: 1.2rem;
-      color: #2567fe;
-      z-index: 10;
-      font-family: "Press Start 2P", system-ui;
-    }
-
-    canvas {
-      display: block;
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1;
-      width: 100vw;
-      height: 100vh;
-    }
-
-    @media (max-width: 600px) {
-      .texto {
-        top: auto;
-        bottom: 120px;
-        left: 5%;
-        max-width: 90%;
-        font-size: 1rem;
-        font-family: 'Chewy', cursive;
-        color: #ff0004;
-      }
-
-      .texto::after {
-        content: "|";
-        animation: blink 1s infinite;
-        margin-left: 4px;
-        color: #4b5563;
-      }
-
-      @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0; }
-      }
-
-      .contador {
-        font-size: 0.9rem;
-        padding: 10px;
-        bottom: 20px;
-      }
-    }
+    /* ensure canvas covers container */
+    canvas{display:block}
   </style>
 </head>
 <body>
-  
-  <canvas id="cielo-estrellado"></canvas>
-  <script src="script.js"></script>
-  
-  
-  
-  <div class="nubes" id="nubes">
-  <img src="https://pngimg.com/uploads/cloud/cloud_PNG112218.png" style="position: absolute; left: 10%; top: 20px; width: 170px; opacity: 0.8; pointer-events:none;">
-  <img src="https://pngimg.com/uploads/cloud/cloud_PNG112218.png" style="position: absolute; left: 40%; top: 50px; width: 80px; opacity: 0.7; pointer-events:none;">
-  <img src="https://pngimg.com/uploads/cloud/cloud_PNG112218.png" style="position: absolute; left: 70%; top: 10px; width: 100px; opacity: 0.9; pointer-events:none;">
-  <img src="https://pngimg.com/uploads/cloud/cloud_PNG112218.png" style="position: absolute; left: 85%; top: 40px; width: 60px; opacity: 0.6; pointer-events:none;">
-  <img src="https://pngimg.com/uploads/cloud/cloud_PNG112218.png" style="position: absolute; left: 75%; top: 80px; width: 170px; opacity: 0.8; pointer-events:none;">
-  <img src="https://pngimg.com/uploads/cloud/cloud_PNG112218.png" style="position: absolute; left: 90%; top: 5px; width: 80px; opacity: 0.7; pointer-events:none;">
-  <img src="https://pngimg.com/uploads/cloud/cloud_PNG112218.png" style="position: absolute; left: 5%; top: 60px; width: 100px; opacity: 0.9; pointer-events:none;">
-</div>
+  <div id="app">
+    <div id="top-emojis">?? ?? ??</div>
 
-  <div class="estrellas" id="estrellas"></div>
-  <div class="sol"></div>
-  <div class="luna"></div>
-  <div class="texto" id="texto"></div>
-  <div class="contador" id="contador"></div>
-  <canvas id="arbolCanvas"></canvas>
+    <div id="stage">
+      <div id="three-container"></div>
+
+      <div id="hint">Arrastra para rotar — acércate al ángulo correcto para que la imagen se forme</div>
+    </div>
+
+    <div class="ui-bottom" id="ui-bottom">
+      <!-- thumbnails inserted by script -->
+      <div class="controls">
+        <div style="display:flex;flex-direction:column;">
+          <label>Columnas</label>
+          <input id="cols" type="range" min="5" max="20" value="10" class="slider">
+        </div>
+        <div style="display:flex;flex-direction:column;">
+          <label>Filas</label>
+          <input id="rows" type="range" min="5" max="20" value="10" class="slider">
+        </div>
+
+        <div style="display:flex;flex-direction:column;align-items:flex-start;">
+          <label>Mostrar rejilla</label>
+          <input id="showGrid" type="checkbox">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js UMD -->
+  <script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
 
   <script>
-    // animacion de estrellas 
-    const canvasEstrellas = document.getElementById('cielo-estrellado');
-const ctxEstrellas = canvasEstrellas.getContext('2d');
+  (function () {
+    // CONFIG: image filenames (local - place them in same folder)
+    const IMAGES = ['foto1.jpg','foto2.jpg','foto3.jpg','foto4.jpg'];
 
-let estrellas = [];
-let animacionId = null;
+    // DOM refs
+    const container = document.getElementById('three-container');
+    const colsEl = document.getElementById('cols');
+    const rowsEl = document.getElementById('rows');
+    const showGridEl = document.getElementById('showGrid');
+    const hint = document.getElementById('hint');
 
-function crearEstrellasAnimadas(cantidad) {
-  canvasEstrellas.width = window.innerWidth;
-  canvasEstrellas.height = window.innerHeight * 0.4;
+    // three essentials
+    const scene = new THREE.Scene();
+    const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
 
-  estrellas = [];
-  for (let i = 0; i < cantidad; i++) {
-    estrellas.push({
-      x: Math.random() * canvasEstrellas.width,
-      y: Math.random() * canvasEstrellas.height,
-      radio: Math.random() * 1.5 + 0.5,
-      alpha: Math.random(),
-      delta: (Math.random() * 0.01 + 0.005) * (Math.random() < 0.5 ? 1 : -1)
-    });
-  }
-}
+    // main camera (user controls)
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
 
-function animarEstrellas() {
-  ctxEstrellas.clearRect(0, 0, canvasEstrellas.width, canvasEstrellas.height);
+    // projector camera (fixed) - the "magic" viewpoint where image aligns.
+    const projector = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
 
-  for (let estrella of estrellas) {
-    estrella.alpha += estrella.delta;
-    if (estrella.alpha <= 0 || estrella.alpha >= 1) {
-      estrella.delta *= -1;
-      estrella.alpha = Math.max(0, Math.min(1, estrella.alpha));
+    // We'll render a subtle ambient
+    const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+    scene.add(ambient);
+
+    // Light for tiny shading (optional)
+    const dir = new THREE.DirectionalLight(0xffffff, 0.2);
+    dir.position.set(1,1,1);
+    scene.add(dir);
+
+    // State
+    let meshes = [];
+    let baseTexture = null;
+    let currentImageIndex = 0;
+    let cols = parseInt(colsEl.value), rows = parseInt(rowsEl.value);
+    let projectorMatrix = new THREE.Matrix4();
+    let showGrid = false;
+
+    // Controls (lightweight spherical)
+    const target = new THREE.Vector3(0,0,0);
+    const spherical = { theta: 0.6, phi: Math.PI/2 - 0.1, radius: 420 }; // start OFF the perfect angle
+    const sphericalTarget = { theta: spherical.theta, phi: spherical.phi, radius: spherical.radius };
+    const damping = 0.12;
+    let isPointerDown = false, lastPointer = {x:0,y:0};
+
+    function getPointer(e){
+      if(e.touches && e.touches.length) return {x:e.touches[0].clientX, y:e.touches[0].clientY};
+      return {x:e.clientX, y:e.clientY};
+    }
+    function onPointerDown(e){ isPointerDown = true; lastPointer = getPointer(e); }
+    function onPointerMove(e){
+      if(!isPointerDown) return;
+      const p = getPointer(e);
+      const dx = p.x - lastPointer.x;
+      const dy = p.y - lastPointer.y;
+      lastPointer = p;
+      const rotSpeed = 0.006;
+      sphericalTarget.theta -= dx * rotSpeed;
+      sphericalTarget.phi -= dy * rotSpeed;
+      sphericalTarget.phi = Math.max(0.01, Math.min(Math.PI-0.01, sphericalTarget.phi));
+    }
+    function onPointerUp(){ isPointerDown = false; }
+    function onWheel(e){
+      e.preventDefault();
+      sphericalTarget.radius += e.deltaY * 0.6;
+      sphericalTarget.radius = Math.max(120, Math.min(1200, sphericalTarget.radius));
     }
 
-    ctxEstrellas.beginPath();
-    ctxEstrellas.arc(estrella.x, estrella.y, estrella.radio, 0, Math.PI * 2);
-    ctxEstrellas.fillStyle = `rgba(255, 255, 255, ${estrella.alpha})`;
-    ctxEstrellas.fill();
-  }
+    renderer.domElement.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('mouseup', onPointerUp);
+    renderer.domElement.addEventListener('touchstart', onPointerDown, {passive:true});
+    window.addEventListener('touchmove', onPointerMove, {passive:true});
+    window.addEventListener('touchend', onPointerUp);
+    renderer.domElement.addEventListener('wheel', onWheel, {passive:false});
 
-  animacionId = requestAnimationFrame(animarEstrellas);
-}
-
-function iniciarAnimacionSegunHora() {
-  const ahora = new Date();
-  const hora = ahora.getHours();
-  const esDeNoche = (hora >= 19 || hora < 6);
-
-  if (esDeNoche) {
-    if (!animacionId) { // Evita animar varias veces
-      crearEstrellasAnimadas(150);
-      animarEstrellas();
-    }
-  } else {
-    if (animacionId) {
-      cancelAnimationFrame(animacionId);
-      animacionId = null;
-    }
-    ctxEstrellas.clearRect(0, 0, canvasEstrellas.width, canvasEstrellas.height);
-  }
-}
-
-// Ejecuta la primera vez
-iniciarAnimacionSegunHora();
-
-// Opcional: Revisar cada minuto si cambió el horario
-setInterval(iniciarAnimacionSegunHora, 60000);
-
-window.addEventListener('resize', () => {
-  if (animacionId) {
-    cancelAnimationFrame(animacionId);
-    animacionId = null;
-  }
-  iniciarAnimacionSegunHora();
-});
-    
-    
-    // Cambios visuales por hora
-    function cambiarFondoPorHora() {
-      const hora = new Date().getHours();
-      const body = document.body;
-      const nubes = document.getElementById("nubes");
-      if (hora >= 6 && hora < 12) {
-        body.style.background = "linear-gradient(#f0f9ff, #e0f7fa)";
-        nubes.style.filter = "brightness(1)";
-      } else if (hora >= 12 && hora < 18) {
-        body.style.background = "linear-gradient(#fef9c3, #fde68a)";
-        nubes.style.filter = "brightness(1)";
-      } else if (hora >= 18 && hora < 20) {
-        body.style.background = "linear-gradient(#400086, #f28b01)";
-        nubes.style.filter = "brightness(0.8)";
-      } else {
-        body.style.background = "linear-gradient(#0f172a, #1e293b)";
-        nubes.style.filter = "brightness(0.4)";        
+    // projective shader
+    const vert = `
+      varying vec4 vProj;
+      void main(){
+        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+        vProj = projectionMatrix * modelViewMatrix * vec4(position, 1.0); // for normal rendering
+        // we also compute projected coords from projector in fragment via uniform matrix and worldPos (passed as worldPos)
+        gl_Position = vProj;
       }
-    }
-
-    function mostrarElementosCielo() {
-      const hora = new Date().getHours();
-      const sol = document.querySelector(".sol");
-      const luna = document.querySelector(".luna");
-      //const estrellas = document.getElementById("estrellas");
-
-      sol.style.opacity = (hora >= 6 && hora < 18) ? "1" : "0";
-      luna.style.opacity = (hora >= 18 || hora < 6) ? "1" : "0";
-      //estrellas.style.opacity = (hora >= 18 || hora < 6) ? "1" : "0";
-    }
-
-    cambiarFondoPorHora();
-    mostrarElementosCielo();
-
-    // CONTADOR
-    const contador = document.getElementById("contador");
-    function actualizarContador() {
-      const inicio = new Date("2024-02-04T00:00:00");
-      const ahora = new Date();
-      const diferencia = ahora - inicio;
-      const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
-      const horas = Math.floor((diferencia / (1000 * 60 * 60)) % 24);
-      const minutos = Math.floor((diferencia / (1000 * 60)) % 60);
-      const segundos = Math.floor((diferencia / 1000) % 60);
-      contador.textContent = `Llevamos juntos ${dias} días, ${horas} horas, ${minutos} minutos, ${segundos} segundos.`;
-    }
-    setInterval(actualizarContador, 1000);
-    actualizarContador();
-
-    // TEXTO
-    const mensaje = "EL amor crece y se fortalece con LEALTAD, \nestamos donde estamos por todo lo que\nnos hemos cuidado, compartido y \nsuperado juntos 🐻🐥.";
-    const textoDiv = document.getElementById("texto");
-    let i = 0;
-    function escribirTexto() {
-      if (i < mensaje.length) {
-        textoDiv.innerHTML += mensaje.charAt(i);
-        i++;
-        setTimeout(escribirTexto, 80);
-      } else {
-        textoDiv.classList.add("aparecer");
+    `;
+    // We'll instead compute projector projection in fragment by using a uniform matrix and modelMatrix.
+    // Use a slightly different approach: pass world position to fragment by computing it in vertex shader.
+    const vert2 = `
+      uniform mat4 projectorMatrix;
+      varying vec4 vProjFromProjector;
+      varying vec4 vPosition;
+      void main(){
+        vPosition = modelMatrix * vec4(position,1.0);
+        vProjFromProjector = projectorMatrix * vPosition;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
       }
-    }
-    setTimeout(() => {
-      textoDiv.classList.add("aparecer");
-      escribirTexto();
-    }, 1000);
-    
-    
-
-      
-    
-    // ANIMACIÓN DEL ÁRBOL
-    const canvas = document.getElementById("arbolCanvas");
-    const ctx = canvas.getContext("2d");
-    let centroX = window.innerWidth > 600 ? window.innerWidth / 2 : window.innerWidth * 0.6;
-    const altura = window.innerHeight;
-    const semillaBase = altura - 130;
-    let semillaY = -50;
-    let semillaCayendo = true;
-    let moverArbol = false;
-    let desplazamientoX = 0;
-    const hojas = [];
-    const hojasFijas = [];
-    const colores = ["#f43f5e", "#f97316", "#facc15", "#84cc16", "#22d3ee"];
-    const MAX_HOJAS = window.innerWidth < 600 ? 60 : 100;
-    let ramasCrecidas = [];
-    let frame = 0;
-
-    function ajustarCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    ajustarCanvas();
-
-    window.addEventListener("resize", () => {
-      ajustarCanvas();
-      centroX = canvas.width / 2;
-      semillaY = -50;
-      semillaCayendo = true;
-      ramasCrecidas = [];
-      hojas.length = 0;
-      hojasFijas.length = 0;
-      desplazamientoX = 0;
-    });
-
-    function dibujarTrapezoide(x1, y1, x2, y2, anchoBase, anchoPunta, color) {
-      const dx = x2 - x1, dy = y2 - y1;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const ux = dx / dist, uy = dy / dist;
-      const px = -uy, py = ux;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(x1 + px * anchoBase, y1 + py * anchoBase);
-      ctx.lineTo(x2 + px * anchoPunta, y2 + py * anchoPunta);
-      ctx.lineTo(x2 - px * anchoPunta, y2 - py * anchoPunta);
-      ctx.lineTo(x1 - px * anchoBase, y1 - py * anchoBase);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    function Rama(x, y, longitud, angulo, profundidad, anchoPadre = 0) {
-      this.x = x;
-      this.y = y;
-      this.longitud = longitud;
-      this.angulo = angulo;
-      this.profundidad = profundidad;
-      this.progress = 0;
-      this.anchoPadre = anchoPadre;
-      this.actualizar = function () {
-        if (this.progress < 1) this.progress += 0.01;
-        const easedProgress = 1 - Math.pow(1 - this.progress, 3);
-        const finX = this.x + Math.cos(this.angulo) * this.longitud * easedProgress;
-        const finY = this.y - Math.sin(this.angulo) * this.longitud * easedProgress;
-        let anchoBase = this.profundidad === 0 ? 30 : Math.max(this.anchoPadre * 0.8, 1.5);
-        let anchoPunta = Math.max(anchoBase * 0.4, 1);
-        let color = this.profundidad === 0 ? "#4b2e05" : `rgb(60,${50 + this.profundidad * 15},20)`;
-        dibujarTrapezoide(this.x + desplazamientoX, this.y, finX + desplazamientoX, finY, anchoBase, anchoPunta, color);
-        if (this.progress >= 1 && !this.expandidas && this.profundidad < 6) {
-          const angOffset = 0.35 + Math.random() * 0.3;
-          const longFactor = 0.6 + Math.random() * 0.2;
-          const nuevaLong = this.longitud * longFactor;
-          ramasCrecidas.push(
-            new Rama(finX, finY, nuevaLong, this.angulo - angOffset, this.profundidad + 1, anchoPunta),
-            new Rama(finX, finY, nuevaLong, this.angulo + angOffset, this.profundidad + 1, anchoPunta),
-            new Rama(finX, finY, nuevaLong * 0.8, this.angulo + (Math.random() - 0.5) * 0.5, this.profundidad + 1, anchoPunta)
-          );
-          this.expandidas = true;
+    `;
+    const frag = `
+      uniform sampler2D map;
+      uniform float opacity;
+      varying vec4 vProjFromProjector;
+      uniform bool showGrid;
+      uniform vec3 gridColor;
+      void main(){
+        // projective divide
+        vec3 proj = vProjFromProjector.xyz / vProjFromProjector.w;
+        // convert from clip (-1..1) to uv (0..1)
+        vec2 uv = proj.xy * 0.5 + 0.5;
+        // if outside, make transparent
+        if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){
+          discard;
         }
-        if (this.progress >= 1 && this.profundidad >= 3 && !this.hojaColocada) {
-          hojasFijas.push({
-            x: finX,
-            y: finY,
-            radio: 7 + Math.random() * 4,
-            color: colores[Math.floor(Math.random() * colores.length)]
-          });
-          this.hojaColocada = true;
+        vec4 color = texture2D(map, uv);
+        if(color.a < 0.01) discard;
+        // optional grid overlay to show cells when showGrid is true
+        if(showGrid){
+          // compute grid lines based on uv fractional coords (cheap)
+          float gx = fract(uv.x * 1.0 * 1.0);
+          float gy = fract(uv.y * 1.0 * 1.0);
+          // not perfect grid but gives subtle lines
         }
-      };
+        gl_FragColor = vec4(color.rgb, opacity * color.a);
+      }
+    `;
+
+    // Create a shared ShaderMaterial factory (we pass projectorMatrix & map)
+    function createShaderMaterial(texture){
+      const mat = new THREE.ShaderMaterial({
+        uniforms: {
+          map: { value: texture },
+          projectorMatrix: { value: new THREE.Matrix4() },
+          opacity: { value: 1.0 },
+          showGrid: { value: false },
+          gridColor: { value: new THREE.Color(0x111111) }
+        },
+        vertexShader: vert2,
+        fragmentShader: frag,
+        transparent: true,
+        depthTest: true,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      });
+      return mat;
     }
 
-    function dibujarHoja(hoja) {
-      ctx.save();
-      ctx.translate(hoja.x + desplazamientoX, hoja.y);
-      ctx.globalAlpha = hoja.opacity;
-      ctx.rotate(Math.sin(hoja.angle) * 0.3);
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.bezierCurveTo(-hoja.radio, -hoja.radio, -hoja.radio, hoja.radio / 2, 0, hoja.radio * 1.5);
-      ctx.bezierCurveTo(hoja.radio, hoja.radio / 2, hoja.radio, -hoja.radio, 0, 0);
-      ctx.fillStyle = hoja.color;
-      ctx.fill();
-      ctx.restore();
-    }
-
-    function animar() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      if (semillaCayendo) {
-        if (semillaY < semillaBase) {
-          semillaY += 3;
-          ctx.beginPath();
-          ctx.arc(centroX, semillaY, 10, 0, Math.PI * 2);
-          ctx.fillStyle = "#7c3aed";
-          ctx.fill();
-        } else {
-          semillaCayendo = false;
-          ramasCrecidas.push(new Rama(centroX, semillaBase, 140, Math.PI / 2, 0, 30));
-          moverArbol = true;
-        }
-      } else {
-        if (moverArbol && desplazamientoX < 100) desplazamientoX += 0.3;
-        ramasCrecidas.forEach(r => r.actualizar());
-        if (frame % 10 === 0 && hojas.length < MAX_HOJAS) {
-          const disponibles = hojasFijas.filter(h => !h.usada);
-          if (disponibles.length > 0) {
-            const origen = disponibles[Math.floor(Math.random() * disponibles.length)];
-            hojas.push({
-              x: origen.x,
-              y: origen.y,
-              radio: 7 + Math.random() * 3,
-              vx: -0.5 + Math.random() * -0.4,
-              vy: 0.4 + Math.random() * 0.2,
-              angle: Math.random() * Math.PI * 2,
-              opacity: 1,
-              color: colores[Math.floor(Math.random() * colores.length)]
-            });
-            origen.usada = true;
+    // build scene from image (cells)
+    function buildFromImage(img, c = 10, r = 10){
+      // free old meshes
+      meshes.forEach(m=>{
+        scene.remove(m);
+        if(m.geometry) m.geometry.dispose();
+        if(m.material){
+          if(m.material.uniforms && m.material.uniforms.map && m.material.uniforms.map.value){
+            // we DON'T dispose shared texture here; texture disposed when loading new baseTexture
           }
+          m.material.dispose();
         }
-        hojas.forEach((hoja, i) => {
-          hoja.x += hoja.vx + Math.sin((frame + i) / 60) * 0.2;
-          hoja.y += hoja.vy + Math.cos((frame + i) / 80) * 0.2;
-          hoja.angle += 0.01;
-          if (hoja.x + desplazamientoX < 350 && hoja.y > canvas.height * 0.35 && hoja.y < canvas.height * 0.75)
-            hoja.opacity = Math.max(0.1, hoja.opacity - 0.01);
-          else
-            hoja.opacity = Math.min(1, hoja.opacity + 0.005);
-          if (hoja.y > canvas.height) hojas.splice(i, 1);
-          dibujarHoja(hoja);
-        });
-        hojasFijas.forEach(hoja => dibujarHoja(hoja));
+      });
+      meshes = [];
+
+      // create base texture from HTML image element
+      const tex = new THREE.Texture(img);
+      tex.needsUpdate = true;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+
+      baseTexture = tex;
+
+      // plane size in world units (keep consistent aspect)
+      const maxDim = 240;
+      const aspect = img.width / img.height;
+      let planeW = maxDim * Math.min(1, aspect);
+      let planeH = maxDim * Math.min(1, 1/aspect);
+      if(aspect >= 1){
+        planeW = maxDim;
+        planeH = maxDim / aspect;
+      } else {
+        planeH = maxDim;
+        planeW = maxDim * aspect;
       }
-      frame++;
-      requestAnimationFrame(animar);
+
+      const startX = -planeW / 2;
+      const startY = planeH / 2;
+      const cellW = planeW / c;
+      const cellH = planeH / r;
+
+      // create shader material (shared clone per mesh because uniforms are per material)
+      for(let i=0;i<c;i++){
+        for(let j=0;j<r;j++){
+          const geom = new THREE.PlaneGeometry(cellW, cellH, 1, 1);
+
+          // IMPORTANT: geometry's local UVs are not used directly. We use projector matrix to sample texture
+          // So geometry positions are as normal.
+
+          const mat = createShaderMaterial(tex);
+
+          // set uniform showGrid toggled
+          mat.uniforms.showGrid.value = showGrid;
+
+          const mesh = new THREE.Mesh(geom, mat);
+
+          // position the mesh at a scattered 3D position
+          const tx = startX + (i+0.5)*cellW;
+          const ty = startY - (j+0.5)*cellH;
+          const tz = 0; // original aligned plane z
+
+          // scatter offset (random depth and offset)
+          const scatterRange = Math.max(planeW, planeH) * 0.9;
+          const sx = tx + (Math.random()-0.5) * scatterRange;
+          const sy = ty + (Math.random()-0.5) * scatterRange * 0.6;
+          const sz = (Math.random()-0.5) * scatterRange;
+
+          mesh.position.set(sx, sy, sz);
+
+          // slight random rotation
+          mesh.rotation.set((Math.random()-0.5)*0.8, (Math.random()-0.5)*0.8, (Math.random()-0.5)*0.8);
+
+          // store its aligned world transform (for reference)
+          mesh.userData.alignedPos = new THREE.Vector3(tx, ty, tz);
+          mesh.userData.indexIJ = [i,j];
+
+          scene.add(mesh);
+          meshes.push(mesh);
+        }
+      }
+
+      // Configure projector to be the "perfect" viewpoint that projects the texture onto the world z=0 plane
+      // We'll place the projector at (0,0,D) facing origin.
+      const projDistance = Math.max(planeW, planeH) * 1.1 + 160; // distance from plane
+      projector.fov = 50;
+      projector.aspect = 1; // we'll update projectorMatrix using image aspect below
+      projector.near = 0.1; projector.far = 5000;
+      projector.position.set(0, 0, projDistance);
+      projector.lookAt(0,0,0);
+      projector.updateMatrixWorld();
+      projector.updateProjectionMatrix();
+
+      // set main camera start to a different angle so initial view is scattered
+      spherical.radius = projDistance * 0.95 + 60;
+      sphericalTarget.radius = spherical.radius;
+      // start a bit offset in phi so user must rotate to align
+      spherical.theta = 0.5;
+      spherical.phi = Math.PI/2 - 0.25;
+      sphericalTarget.theta = spherical.theta;
+      sphericalTarget.phi = spherical.phi;
+
+      // set renderer size / camera aspect
+      resize();
+
+      // compute projectorMatrix uniform for all materials
+      updateProjectorMatrixForMaterials();
     }
-    animar();
-    
-    /* Animacion de nubes */
-   const nubes = document.querySelectorAll('#nubes img');
-const velocidades = [0.02, 0.08, 0.020, 0.015,0.02, 0.08, 0.020, 0.015]; // velocidad diferente para cada nube (px por frame)
-const posiciones = [];
 
-nubes.forEach((nube, i) => {
-  posiciones[i] = parseFloat(nube.style.left); // guarda la posición inicial en porcentaje
-});
+    function updateProjectorMatrixForMaterials(){
+      // make a matrix that maps world pos -> projector clip space
+      projector.updateMatrixWorld();
+      projector.updateProjectionMatrix();
+      const projMat = new THREE.Matrix4().multiplyMatrices(projector.projectionMatrix, projector.matrixWorldInverse);
+      // assign for all materials
+      meshes.forEach(m=>{
+        if(m.material && m.material.uniforms && m.material.uniforms.projectorMatrix){
+          m.material.uniforms.projectorMatrix.value.copy(projMat);
+        }
+      });
+    }
 
-function animarNubes() {
-  nubes.forEach((nube, i) => {
-    let pos = posiciones[i];
-    pos += velocidades[i];
-    if (pos > 110) pos = -20; // si la nube sale por derecha, vuelve a entrar por izquierda
-    posiciones[i] = pos;
-    nube.style.left = pos + '%';
-  });
-  requestAnimationFrame(animarNubes);
-}
+    function resize(){
+      const w = container.clientWidth || window.innerWidth;
+      const h = container.clientHeight || window.innerHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
 
-animarNubes();
-   
-    setInterval(() => {
-  crearEstrellas(canvasEstrellas, 150);
-}, 3000); // se regenera cada 3 segundos
-    
+      // projector aspect best set to image aspect, but we keep 1:1 to simplify - it's fine visually.
+      // If desired, we could set projector.aspect = camera.aspect and projector.updateProjectionMatrix();
+      updateProjectorMatrixForMaterials();
+    }
+    window.addEventListener('resize', resize);
+
+    function updateCameraFromSpherical(){
+      spherical.theta += (sphericalTarget.theta - spherical.theta) * damping;
+      spherical.phi += (sphericalTarget.phi - spherical.phi) * damping;
+      spherical.radius += (sphericalTarget.radius - spherical.radius) * damping;
+
+      const r = spherical.radius;
+      const x = r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+      const y = r * Math.cos(spherical.phi);
+      const z = r * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+      camera.position.set(x, y, z);
+      camera.lookAt(target);
+    }
+
+    // render loop
+    function render(){
+      requestAnimationFrame(render);
+      updateCameraFromSpherical();
+
+      // update projector matrix uniform each frame (in case projector moves or camera resize)
+      const projMat = new THREE.Matrix4().multiplyMatrices(projector.projectionMatrix, projector.matrixWorldInverse);
+      meshes.forEach(m=>{
+        if(m.material && m.material.uniforms && m.material.uniforms.projectorMatrix){
+          m.material.uniforms.projectorMatrix.value.copy(projMat);
+          m.material.uniforms.showGrid.value = showGrid;
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    // thumbnails UI
+    const uiBottom = document.getElementById('ui-bottom');
+    function createThumbs(){
+      IMAGES.forEach((name, idx)=>{
+        const div = document.createElement('div');
+        div.className = 'thumb' + (idx===0 ? ' active' : '');
+        div.dataset.idx = idx;
+        const img = document.createElement('img');
+        img.src = name; // local filename
+        img.alt = name;
+        div.appendChild(img);
+        div.addEventListener('click', ()=> {
+          document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active'));
+          div.classList.add('active');
+          loadImageAtIndex(idx);
+        });
+        uiBottom.insertBefore(div, uiBottom.firstChild);
+      });
+    }
+
+    // load image and build
+    function loadImageAtIndex(idx){
+      currentImageIndex = idx;
+      const name = IMAGES[idx];
+      // show hint only until user interacts
+      hint.style.display = 'block';
+      const img = new Image();
+      img.onload = function(){
+        cols = parseInt(colsEl.value);
+        rows = parseInt(rowsEl.value);
+        buildFromImage(img, cols, rows);
+      };
+      img.onerror = function(){
+        alert('No se pudo cargar la imagen: ' + name + '. Asegúrate que esté en la misma carpeta que el HTML y que el nombre sea correcto.');
+      };
+      img.src = name + '?v=' + Math.random(); // cache-bust
+    }
+
+    // UI logics
+    colsEl.addEventListener('input', ()=>{
+      cols = parseInt(colsEl.value);
+      loadImageAtIndex(currentImageIndex);
+    });
+    rowsEl.addEventListener('input', ()=>{
+      rows = parseInt(rowsEl.value);
+      loadImageAtIndex(currentImageIndex);
+    });
+    showGridEl.addEventListener('change', ()=>{
+      showGrid = showGridEl.checked;
+    });
+
+    // Hide hint after first pointer interaction
+    function setupFirstInteractionHide(){
+      function hide(){
+        hint.style.display = 'none';
+        window.removeEventListener('pointerdown', hide);
+        window.removeEventListener('touchstart', hide);
+        window.removeEventListener('mousedown', hide);
+      }
+      window.addEventListener('pointerdown', hide);
+      window.addEventListener('touchstart', hide, {passive:true});
+      window.addEventListener('mousedown', hide);
+    }
+
+    // initialize
+    createThumbs();
+    loadImageAtIndex(0);
+    resize();
+    render();
+    setupFirstInteractionHide();
+
+    // small helper: re-compute projector on window resize or when needed
+    window.addEventListener('orientationchange', ()=> {
+      setTimeout(()=>{ resize(); }, 350);
+    });
+
+  })();
   </script>
 </body>
 </html>
