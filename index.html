@@ -1,53 +1,52 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Poly Art 3D Explosión Ligera</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poly Art 3D Correcto</title>
 <style>
-  html,body{margin:0;height:100%;background:linear-gradient(180deg,#fff,#f3f4f6);overflow:hidden;font-family:sans-serif}
-  #top-emojis{position:absolute;top:10px;left:0;right:0;text-align:center;font-size:28px;pointer-events:none;z-index:10;user-select:none}
-  #three-container{width:100%;height:100%}
-  .ui-bottom{position:absolute;bottom:0;width:100%;display:flex;overflow-x:auto;padding:10px;background:rgba(255,255,255,0.6);backdrop-filter:blur(6px);box-shadow:0 -2px 10px rgba(0,0,0,0.05)}
-  .thumb{width:72px;height:56px;margin-right:10px;border:2px solid transparent;border-radius:6px;overflow:hidden;cursor:pointer;flex:0 0 auto;box-shadow:0 4px 10px rgba(0,0,0,0.05)}
-  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-  .thumb.active{border-color:rgba(96,165,250,0.85)}
-  .slider-container{display:flex;align-items:center;margin-left:10px}
-  .slider-container label{font-size:12px;margin-right:4px;color:#64748b}
-  .slider-container input{width:100px}
-  @media(max-width:600px){.thumb{width:60px;height:46px}.slider-container input{width:80px}.slider-container label{font-size:10px}}
+html, body { margin:0; height:100%; background: linear-gradient(180deg, #fff, #f3f4f6); overflow:hidden; font-family:sans-serif; }
+#top-emojis { position:absolute; top:10px; left:0; right:0; text-align:center; font-size:28px; pointer-events:none; z-index:10; user-select:none; }
+#three-container { width:100%; height:100%; }
+.ui-bottom { position:absolute; bottom:0; width:100%; display:flex; overflow-x:auto; padding:10px; background:rgba(255,255,255,0.6); backdrop-filter:blur(6px); box-shadow:0 -2px 10px rgba(0,0,0,0.05); }
+.thumb { width:72px; height:56px; margin-right:10px; border:2px solid transparent; border-radius:6px; overflow:hidden; cursor:pointer; flex:0 0 auto; box-shadow:0 4px 10px rgba(0,0,0,0.05); }
+.thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.thumb.active { border-color: rgba(96,165,250,0.85); }
+@media(max-width:600px){ .thumb{width:60px; height:46px;} }
 </style>
 </head>
 <body>
 <div id="top-emojis">🧸 ❤️ 🐥</div>
 <div id="three-container"></div>
-<div class="ui-bottom" id="ui-bottom">
-  <div class="slider-container"><label>Columnas</label><input type="range" min="5" max="20" value="10" id="cols"></div>
-  <div class="slider-container"><label>Filas</label><input type="range" min="5" max="20" value="10" id="rows"></div>
-</div>
+<div class="ui-bottom" id="ui-bottom"></div>
 
 <script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
 <script>
 (function(){
 const IMAGES=['foto1.jpeg','foto2.jpeg','foto3.jpeg','foto4.jpeg'];
 const container=document.getElementById('three-container');
-const colsEl=document.getElementById('cols'), rowsEl=document.getElementById('rows');
 const scene=new THREE.Scene();
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+const renderer=new THREE.WebGLRenderer({antialias:true, alpha:true});
 renderer.setPixelRatio(window.devicePixelRatio);
 container.appendChild(renderer.domElement);
-const camera=new THREE.PerspectiveCamera(50,1,0.1,2000);
-const projector=new THREE.PerspectiveCamera(50,1,0.1,2000);
-const ambient=new THREE.AmbientLight(0xffffff,0.9); scene.add(ambient);
-const dir=new THREE.DirectionalLight(0xffffff,0.2); dir.position.set(1,1,1); scene.add(dir);
-let meshes=[],baseTexture=null,currentImageIndex=0,cols=parseInt(colsEl.value),rows=parseInt(rowsEl.value);
-let spherical={theta:0.6,phi:Math.PI/2-0.1,radius:420},sphericalTarget={theta:0.6,phi:Math.PI/2-0.1,radius:420},damping=0.12;
-let isPointerDown=false,lastPointer={x:0,y:0};
-function getPointer(e){return e.touches?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY}}
-function onPointerDown(e){isPointerDown=true; lastPointer=getPointer(e)}
-function onPointerMove(e){if(!isPointerDown)return; const p=getPointer(e); const dx=p.x-lastPointer.x,dy=p.y-lastPointer.y; lastPointer=p; sphericalTarget.theta-=dx*0.006; sphericalTarget.phi-=dy*0.006; sphericalTarget.phi=Math.max(0.01,Math.min(Math.PI-0.01,sphericalTarget.phi))}
-function onPointerUp(){isPointerDown=false}
-function onWheel(e){e.preventDefault(); sphericalTarget.radius+=e.deltaY*0.6; sphericalTarget.radius=Math.max(120,Math.min(1200,sphericalTarget.radius))}
+const camera=new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
+scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+const dirLight=new THREE.DirectionalLight(0xffffff, 0.2); dirLight.position.set(1,1,1); scene.add(dirLight);
+
+let meshes=[],baseTexture=null,currentImageIndex=0;
+let cols=10, rows=10;
+
+let spherical={theta:0.5, phi:Math.PI/2-0.25, radius:420};
+let sphericalTarget={...spherical};
+const damping=0.12;
+let isPointerDown=false, lastPointer={x:0,y:0};
+
+function getPointer(e){ return e.touches?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY}; }
+function onPointerDown(e){isPointerDown=true; lastPointer=getPointer(e);}
+function onPointerMove(e){ if(!isPointerDown) return; const p=getPointer(e); const dx=p.x-lastPointer.x, dy=p.y-lastPointer.y; lastPointer=p; sphericalTarget.theta-=dx*0.006; sphericalTarget.phi-=dy*0.006; sphericalTarget.phi=Math.max(0.01, Math.min(Math.PI-0.99, sphericalTarget.phi)); }
+function onPointerUp(){isPointerDown=false;}
+function onWheel(e){e.preventDefault(); sphericalTarget.radius+=e.deltaY*0.6; sphericalTarget.radius=Math.max(120,Math.min(1200,sphericalTarget.radius));}
+
 renderer.domElement.addEventListener('mousedown',onPointerDown);
 window.addEventListener('mousemove',onPointerMove);
 window.addEventListener('mouseup',onPointerUp);
@@ -56,80 +55,56 @@ window.addEventListener('touchmove',onPointerMove,{passive:true});
 window.addEventListener('touchend',onPointerUp);
 renderer.domElement.addEventListener('wheel',onWheel,{passive:false});
 
-// Shader
-const vert=`varying vec4 vProjFromProjector;
-uniform mat4 projectorMatrix;
-varying vec4 vPosition;
-void main(){
-vPosition=modelMatrix*vec4(position,1.0);
-vProjFromProjector=projectorMatrix*vPosition;
-gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
-}`;
-const frag=`uniform sampler2D map; uniform float opacity; uniform bool showGrid;
-varying vec4 vProjFromProjector;
-void main(){
-vec3 proj=vProjFromProjector.xyz/vProjFromProjector.w;
-vec2 uv=proj.xy*0.5+0.5;
-if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){discard;}
-vec4 color=texture2D(map,uv);
-if(color.a<0.01) discard;
-gl_FragColor=vec4(color.rgb,opacity*color.a);
-}`;
-function createShaderMaterial(texture){return new THREE.ShaderMaterial({uniforms:{map:{value:texture},projectorMatrix:{value:new THREE.Matrix4()},opacity:{value:1.0},showGrid:{value:false}},vertexShader:vert,fragmentShader:frag,transparent:true,depthTest:true,depthWrite:false,side:THREE.DoubleSide})}
+// Shader para proyección
+const vert=`varying vec4 vProj; uniform mat4 projectorMatrix; void main(){vProj=projectorMatrix*modelMatrix*vec4(position,1.0); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const frag=`uniform sampler2D map; varying vec4 vProj; void main(){ vec2 uv=vProj.xy/vProj.w*0.5+0.5; if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0) discard; vec4 c=texture2D(map,uv); if(c.a<0.01) discard; gl_FragColor=c; }`;
+function createShaderMaterial(texture){ return new THREE.ShaderMaterial({uniforms:{map:{value:texture},projectorMatrix:{value:new THREE.Matrix4()}}, vertexShader:vert, fragmentShader:frag, transparent:true, side:THREE.DoubleSide}); }
 
 function buildFromImage(img,c,r){
-meshes.forEach(m=>{scene.remove(m); if(m.geometry)m.geometry.dispose(); if(m.material)m.material.dispose();});
+meshes.forEach(m=>{scene.remove(m); if(m.geometry) m.geometry.dispose(); if(m.material) m.material.dispose();});
 meshes=[];
 const tex=new THREE.Texture(img); tex.needsUpdate=true; tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter;
 baseTexture=tex;
+
 const maxDim=240; const aspect=img.width/img.height;
-let planeW=aspect>=1?maxDim:maxDim*aspect,planeH=aspect>=1?maxDim/aspect:maxDim;
-const startX=-planeW/2,startY=planeH/2,cellW=planeW/c,cellH=planeH/r;
+let planeW=aspect>=1?maxDim:maxDim*aspect;
+let planeH=aspect>=1?maxDim/aspect:maxDim;
+const startX=-planeW/2, startY=planeH/2, cellW=planeW/c, cellH=planeH/r;
+
 for(let i=0;i<c;i++){for(let j=0;j<r;j++){
 const geom=new THREE.PlaneGeometry(cellW,cellH,1,1);
 const mat=createShaderMaterial(tex);
 const mesh=new THREE.Mesh(geom,mat);
-const tx=startX+(i+0.5)*cellW,ty=startY-(j+0.5)*cellH,tz=0;
-const scatterRange=Math.max(planeW,planeH)*0.6;
-const sx=tx+(Math.random()-0.5)*scatterRange,sy=ty+(Math.random()-0.5)*scatterRange*0.6,sz=(Math.random()-0.5)*scatterRange;
-mesh.position.set(sx,sy,sz);
-mesh.rotation.set((Math.random()-0.5)*0.8,(Math.random()-0.5)*0.8,(Math.random()-0.5)*0.8);
+const tx=startX+(i+0.5)*cellW, ty=startY-(j+0.5)*cellH, tz=0;
+mesh.position.set(tx,ty,tz);
 mesh.userData.alignedPos=new THREE.Vector3(tx,ty,tz);
 meshes.push(mesh); scene.add(mesh);
-mesh.userData.floatOffset={x:Math.random()*0.6,y:Math.random()*0.6,z:Math.random()*0.6};
-}} 
-const projDistance=Math.max(planeW,planeH)*1.1+160;
-projector.position.set(0,0,projDistance); projector.lookAt(0,0,0); projector.updateMatrixWorld(); projector.updateProjectionMatrix();
-spherical.radius=projDistance*0.95+60; sphericalTarget.radius=spherical.radius; spherical.theta=0.5; spherical.phi=Math.PI/2-0.25; sphericalTarget.theta=spherical.theta; sphericalTarget.phi=spherical.phi;
-resize(); updateProjectorMatrixForMaterials();}
+}}
 
-function updateProjectorMatrixForMaterials(){projector.updateMatrixWorld(); projector.updateProjectionMatrix();
-const projMat=new THREE.Matrix4().multiplyMatrices(projector.projectionMatrix,projector.matrixWorldInverse);
-meshes.forEach(m=>{if(m.material&&m.material.uniforms&&m.material.uniforms.projectorMatrix){m.material.uniforms.projectorMatrix.value.copy(projMat);}})}
+camera.position.set(0,0,Math.max(planeW,planeH)*1.2);
+camera.lookAt(0,0,0);
 
-function resize(){const w=container.clientWidth||window.innerWidth,h=container.clientHeight||window.innerHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();updateProjectorMatrixForMaterials();}
+// Proyector desde cámara
+updateProjectorMatrix();
+}
+
+function updateProjectorMatrix(){
+camera.updateMatrixWorld(); camera.updateProjectionMatrix();
+const projMat=new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+meshes.forEach(m=>{ if(m.material && m.material.uniforms && m.material.uniforms.projectorMatrix){ m.material.uniforms.projectorMatrix.value.copy(projMat); }});
+}
+
+function resize(){ const w=container.clientWidth, h=container.clientHeight; renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); updateProjectorMatrix(); }
 window.addEventListener('resize',resize);
 
-function updateCameraFromSpherical(){
-spherical.theta+=(sphericalTarget.theta-spherical.theta)*damping;
-spherical.phi+=(sphericalTarget.phi-spherical.phi)*damping;
-spherical.radius+=(sphericalTarget.radius-spherical.radius)*damping;
+function updateCamera(){ spherical.theta += (sphericalTarget.theta-spherical.theta)*damping;
+spherical.phi += (sphericalTarget.phi-spherical.phi)*damping;
+spherical.radius += (sphericalTarget.radius-spherical.radius)*damping;
 const r=spherical.radius;
-const x=r*Math.sin(spherical.phi)*Math.sin(spherical.theta),y=r*Math.cos(spherical.phi),z=r*Math.sin(spherical.phi)*Math.cos(spherical.theta);
-camera.position.set(x,y,z); camera.lookAt(0,0,0);}
+camera.position.set(r*Math.sin(spherical.phi)*Math.sin(spherical.theta), r*Math.cos(spherical.phi), r*Math.sin(spherical.phi)*Math.cos(spherical.theta));
+camera.lookAt(0,0,0); }
 
-function render(){
-requestAnimationFrame(render);
-updateCameraFromSpherical();
-// slight floating animation
-meshes.forEach(m=>{
-  m.position.x += Math.sin(Date.now()*0.001+m.userData.floatOffset.x)*0.05;
-  m.position.y += Math.sin(Date.now()*0.001+m.userData.floatOffset.y)*0.05;
-  m.position.z += Math.sin(Date.now()*0.001+m.userData.floatOffset.z)*0.05;
-});
-updateProjectorMatrixForMaterials();
-renderer.render(scene,camera);
-}
+function render(){ requestAnimationFrame(render); updateCamera(); updateProjectorMatrix(); renderer.render(scene,camera); }
 
 // Thumbnails
 const uiBottom=document.getElementById('ui-bottom');
@@ -137,18 +112,13 @@ IMAGES.forEach((name,idx)=>{
 const div=document.createElement('div'); div.className='thumb'+(idx===0?' active':''); div.dataset.idx=idx;
 const img=document.createElement('img'); img.src=name; div.appendChild(img);
 div.addEventListener('click',()=>{document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active')); div.classList.add('active'); loadImageAtIndex(idx);});
-uiBottom.insertBefore(div,uiBottom.firstChild);
+uiBottom.appendChild(div);
 });
 
-function loadImageAtIndex(idx){currentImageIndex=idx; const name=IMAGES[idx]; const img=new Image();
-img.onload=function(){cols=parseInt(colsEl.value); rows=parseInt(rowsEl.value); buildFromImage(img,cols,rows);}
-img.onerror=function(){alert('No se pudo cargar '+name);}
-img.src=name+'?v='+Math.random();}
+function loadImageAtIndex(idx){ currentImageIndex=idx; const img=new Image(); img.onload=function(){ cols=parseInt(10); rows=parseInt(10); buildFromImage(img,cols,rows); } img.src=IMAGES[idx]+'?v='+Math.random(); }
 
-colsEl.addEventListener('input',()=>{cols=parseInt(colsEl.value); loadImageAtIndex(currentImageIndex);});
-rowsEl.addEventListener('input',()=>{rows=parseInt(rowsEl.value); loadImageAtIndex(currentImageIndex);});
-
-resize(); loadImageAtIndex(0); render();
+loadImageAtIndex(0); render();
+resize();
 })();
 </script>
 </body>
