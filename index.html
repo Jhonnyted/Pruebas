@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Poly Art 3D Correcto Final</title>
+<title>Poly Art 3D Funcional</title>
 <style>
 html, body { margin:0; height:100%; background: linear-gradient(180deg,#fff,#f3f4f6); overflow:hidden; font-family:sans-serif; }
 #top-emojis { position:absolute; top:10px; left:0; right:0; text-align:center; font-size:28px; pointer-events:none; z-index:10; user-select:none; }
@@ -38,7 +38,6 @@ scene.add(dirLight);
 
 let meshes=[],currentImageIndex=0;
 let cols=10, rows=10;
-
 let spherical={theta:0.5, phi:Math.PI/2-0.25, radius:400};
 let sphericalTarget={...spherical};
 const damping=0.12;
@@ -58,44 +57,50 @@ window.addEventListener('touchmove',onPointerMove,{passive:true});
 window.addEventListener('touchend',onPointerUp);
 renderer.domElement.addEventListener('wheel',onWheel,{passive:false});
 
-// Construir Poly Art 3D
 function buildFromImage(img, c, r){
   meshes.forEach(m=>{scene.remove(m); if(m.geometry)m.geometry.dispose(); if(m.material)m.material.dispose();});
   meshes=[];
-  
-  const tex=new THREE.Texture(img);
-  tex.needsUpdate=true;
-  tex.minFilter=THREE.LinearFilter;
-  tex.magFilter=THREE.LinearFilter;
 
-  const planeW=240, planeH=planeW*(img.height/img.width);
-  const startX=-planeW/2, startY=planeH/2;
-  const cellW=planeW/c, cellH=planeH/r;
+  const loader=new THREE.TextureLoader();
+  loader.load(img.src, texture=>{
+    texture.minFilter=THREE.LinearFilter;
+    texture.magFilter=THREE.LinearFilter;
 
-  for(let i=0;i<c;i++){
-    for(let j=0;j<r;j++){
-      const geom=new THREE.PlaneGeometry(cellW,cellH,1,1);
-      
-      // Ajustar UVs para que cada fragmento tome solo su parte
-      const u0=i/c, u1=(i+1)/c;
-      const v0=j/r, v1=(j+1)/r;
-      geom.faceVertexUvs[0][0]=[new THREE.Vector2(u0,1-v0), new THREE.Vector2(u1,1-v0), new THREE.Vector2(u0,1-v1)];
-      geom.faceVertexUvs[0][1]=[new THREE.Vector2(u1,1-v0), new THREE.Vector2(u1,1-v1), new THREE.Vector2(u0,1-v1)];
-      geom.uvsNeedUpdate=true;
+    const planeW=240;
+    const planeH=planeW*(img.height/img.width);
+    const startX=-planeW/2, startY=planeH/2;
+    const cellW=planeW/c, cellH=planeH/r;
 
-      const mat=new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide});
-      const mesh=new THREE.Mesh(geom,mat);
+    for(let i=0;i<c;i++){
+      for(let j=0;j<r;j++){
+        const geom=new THREE.PlaneGeometry(cellW, cellH, 1,1);
+        const uvAttr=geom.attributes.uv.array;
+        // Ajustar UVs para fragmento exacto
+        const u0=i/c, u1=(i+1)/c;
+        const v0=j/r, v1=(j+1)/r;
+        uvAttr[0]=u0; uvAttr[1]=1-v0;
+        uvAttr[2]=u1; uvAttr[3]=1-v0;
+        uvAttr[4]=u0; uvAttr[5]=1-v1;
+        uvAttr[6]=u1; uvAttr[7]=1-v0;
+        uvAttr[8]=u1; uvAttr[9]=1-v1;
+        uvAttr[10]=u0; uvAttr[11]=1-v1;
+        geom.attributes.uv.needsUpdate=true;
 
-      // Dispersión ligera en X,Y,Z
-      const tx=startX+(i+0.5)*cellW, ty=startY-(j+0.5)*cellH, tz=(Math.random()-0.5)*60;
-      mesh.position.set(tx+(Math.random()-0.5)*60, ty+(Math.random()-0.5)*60, tz);
-      meshes.push(mesh);
-      scene.add(mesh);
+        const mat=new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide, transparent:true});
+        const mesh=new THREE.Mesh(geom, mat);
+
+        const tx=startX+(i+0.5)*cellW;
+        const ty=startY-(j+0.5)*cellH;
+        const tz=(Math.random()-0.5)*60;
+        mesh.position.set(tx+(Math.random()-0.5)*60, ty+(Math.random()-0.5)*60, tz);
+        meshes.push(mesh);
+        scene.add(mesh);
+      }
     }
-  }
 
-  camera.position.set(0,0,Math.max(planeW,planeH)*1.5);
-  camera.lookAt(0,0,0);
+    camera.position.set(0,0,Math.max(planeW,planeH)*1.5);
+    camera.lookAt(0,0,0);
+  });
 }
 
 function resize(){
@@ -128,22 +133,25 @@ const uiBottom=document.getElementById('ui-bottom');
 IMAGES.forEach((name,idx)=>{
   const div=document.createElement('div'); div.className='thumb'+(idx===0?' active':''); div.dataset.idx=idx;
   const img=document.createElement('img'); img.src=name; div.appendChild(img);
-  div.addEventListener('click',()=>{document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active')); div.classList.add('active'); loadImageAtIndex(idx);});
+  div.addEventListener('click',()=>{
+    document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active'));
+    div.classList.add('active');
+    loadImageAtIndex(idx);
+  });
   uiBottom.appendChild(div);
 });
 
 function loadImageAtIndex(idx){
   currentImageIndex=idx;
   const img=new Image();
-  img.onload=function(){ buildFromImage(img,cols,rows); }
-  img.src=IMAGES[idx]+'?v='+Math.random();
+  img.onload=function(){ buildFromImage(img, cols, rows); };
+  img.src=IMAGES[idx];
 }
 
 // Inicializar
 resize();
 loadImageAtIndex(0);
 render();
-
 })();
 </script>
 </body>
