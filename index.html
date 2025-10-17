@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Poly Art 3D Correcto</title>
+<title>Poly Art 3D Final</title>
 <style>
-html, body { margin:0; height:100%; background: linear-gradient(180deg, #fff, #f3f4f6); overflow:hidden; font-family:sans-serif; }
+html, body { margin:0; height:100%; background: linear-gradient(180deg,#fff,#f3f4f6); overflow:hidden; font-family:sans-serif; }
 #top-emojis { position:absolute; top:10px; left:0; right:0; text-align:center; font-size:28px; pointer-events:none; z-index:10; user-select:none; }
 #three-container { width:100%; height:100%; }
 .ui-bottom { position:absolute; bottom:0; width:100%; display:flex; overflow-x:auto; padding:10px; background:rgba(255,255,255,0.6); backdrop-filter:blur(6px); box-shadow:0 -2px 10px rgba(0,0,0,0.05); }
@@ -29,14 +29,17 @@ const scene=new THREE.Scene();
 const renderer=new THREE.WebGLRenderer({antialias:true, alpha:true});
 renderer.setPixelRatio(window.devicePixelRatio);
 container.appendChild(renderer.domElement);
-const camera=new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
-scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-const dirLight=new THREE.DirectionalLight(0xffffff, 0.2); dirLight.position.set(1,1,1); scene.add(dirLight);
 
-let meshes=[],baseTexture=null,currentImageIndex=0;
+const camera=new THREE.PerspectiveCamera(50,1,0.1,2000);
+scene.add(new THREE.AmbientLight(0xffffff,0.9));
+const dirLight=new THREE.DirectionalLight(0xffffff,0.2);
+dirLight.position.set(1,1,1);
+scene.add(dirLight);
+
+let meshes=[],currentImageIndex=0;
 let cols=10, rows=10;
 
-let spherical={theta:0.5, phi:Math.PI/2-0.25, radius:420};
+let spherical={theta:0.5, phi:Math.PI/2-0.25, radius:400};
 let sphericalTarget={...spherical};
 const damping=0.12;
 let isPointerDown=false, lastPointer={x:0,y:0};
@@ -55,70 +58,86 @@ window.addEventListener('touchmove',onPointerMove,{passive:true});
 window.addEventListener('touchend',onPointerUp);
 renderer.domElement.addEventListener('wheel',onWheel,{passive:false});
 
-// Shader para proyección
-const vert=`varying vec4 vProj; uniform mat4 projectorMatrix; void main(){vProj=projectorMatrix*modelMatrix*vec4(position,1.0); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
-const frag=`uniform sampler2D map; varying vec4 vProj; void main(){ vec2 uv=vProj.xy/vProj.w*0.5+0.5; if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0) discard; vec4 c=texture2D(map,uv); if(c.a<0.01) discard; gl_FragColor=c; }`;
-function createShaderMaterial(texture){ return new THREE.ShaderMaterial({uniforms:{map:{value:texture},projectorMatrix:{value:new THREE.Matrix4()}}, vertexShader:vert, fragmentShader:frag, transparent:true, side:THREE.DoubleSide}); }
+// Crea fragmentos Poly Art
+function buildFromImage(img, c, r){
+  meshes.forEach(m=>{scene.remove(m); if(m.geometry) m.geometry.dispose(); if(m.material) m.material.dispose();});
+  meshes=[];
 
-function buildFromImage(img,c,r){
-meshes.forEach(m=>{scene.remove(m); if(m.geometry) m.geometry.dispose(); if(m.material) m.material.dispose();});
-meshes=[];
-const tex=new THREE.Texture(img); tex.needsUpdate=true; tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter;
-baseTexture=tex;
+  const tex=new THREE.Texture(img);
+  tex.needsUpdate=true;
+  tex.minFilter=THREE.LinearFilter;
+  tex.magFilter=THREE.LinearFilter;
 
-const maxDim=240; const aspect=img.width/img.height;
-let planeW=aspect>=1?maxDim:maxDim*aspect;
-let planeH=aspect>=1?maxDim/aspect:maxDim;
-const startX=-planeW/2, startY=planeH/2, cellW=planeW/c, cellH=planeH/r;
+  const maxDim=240;
+  const aspect=img.width/img.height;
+  let planeW=aspect>=1?maxDim:maxDim*aspect;
+  let planeH=aspect>=1?maxDim/aspect:maxDim;
+  const startX=-planeW/2, startY=planeH/2, cellW=planeW/c, cellH=planeH/r;
 
-for(let i=0;i<c;i++){for(let j=0;j<r;j++){
-const geom=new THREE.PlaneGeometry(cellW,cellH,1,1);
-const mat=createShaderMaterial(tex);
-const mesh=new THREE.Mesh(geom,mat);
-const tx=startX+(i+0.5)*cellW, ty=startY-(j+0.5)*cellH, tz=0;
-mesh.position.set(tx,ty,tz);
-mesh.userData.alignedPos=new THREE.Vector3(tx,ty,tz);
-meshes.push(mesh); scene.add(mesh);
-}}
+  for(let i=0;i<c;i++){
+    for(let j=0;j<r;j++){
+      const geom=new THREE.PlaneGeometry(cellW,cellH,1,1);
+      const mat=new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide});
+      const mesh=new THREE.Mesh(geom, mat);
 
-camera.position.set(0,0,Math.max(planeW,planeH)*1.2);
-camera.lookAt(0,0,0);
+      // Posición dispersa ligera
+      const tx=startX+(i+0.5)*cellW, ty=startY-(j+0.5)*cellH, tz=(Math.random()-0.5)*40;
+      mesh.position.set(tx+Math.random()*40-20, ty+Math.random()*40-20, tz);
+      meshes.push(mesh);
+      scene.add(mesh);
+    }
+  }
 
-// Proyector desde cámara
-updateProjectorMatrix();
+  camera.position.set(0,0,Math.max(planeW,planeH)*1.2);
+  camera.lookAt(0,0,0);
 }
 
-function updateProjectorMatrix(){
-camera.updateMatrixWorld(); camera.updateProjectionMatrix();
-const projMat=new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-meshes.forEach(m=>{ if(m.material && m.material.uniforms && m.material.uniforms.projectorMatrix){ m.material.uniforms.projectorMatrix.value.copy(projMat); }});
+function resize(){
+  const w=container.clientWidth, h=container.clientHeight;
+  renderer.setSize(w,h);
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
 }
-
-function resize(){ const w=container.clientWidth, h=container.clientHeight; renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); updateProjectorMatrix(); }
 window.addEventListener('resize',resize);
 
-function updateCamera(){ spherical.theta += (sphericalTarget.theta-spherical.theta)*damping;
-spherical.phi += (sphericalTarget.phi-spherical.phi)*damping;
-spherical.radius += (sphericalTarget.radius-spherical.radius)*damping;
-const r=spherical.radius;
-camera.position.set(r*Math.sin(spherical.phi)*Math.sin(spherical.theta), r*Math.cos(spherical.phi), r*Math.sin(spherical.phi)*Math.cos(spherical.theta));
-camera.lookAt(0,0,0); }
+function updateCamera(){
+  spherical.theta += (sphericalTarget.theta - spherical.theta)*damping;
+  spherical.phi += (sphericalTarget.phi - spherical.phi)*damping;
+  spherical.radius += (sphericalTarget.radius - spherical.radius)*damping;
+  const r=spherical.radius;
+  camera.position.set(r*Math.sin(spherical.phi)*Math.sin(spherical.theta),
+                      r*Math.cos(spherical.phi),
+                      r*Math.sin(spherical.phi)*Math.cos(spherical.theta));
+  camera.lookAt(0,0,0);
+}
 
-function render(){ requestAnimationFrame(render); updateCamera(); updateProjectorMatrix(); renderer.render(scene,camera); }
+function render(){
+  requestAnimationFrame(render);
+  updateCamera();
+  renderer.render(scene,camera);
+}
 
-// Thumbnails
+// Miniaturas
 const uiBottom=document.getElementById('ui-bottom');
 IMAGES.forEach((name,idx)=>{
-const div=document.createElement('div'); div.className='thumb'+(idx===0?' active':''); div.dataset.idx=idx;
-const img=document.createElement('img'); img.src=name; div.appendChild(img);
-div.addEventListener('click',()=>{document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active')); div.classList.add('active'); loadImageAtIndex(idx);});
-uiBottom.appendChild(div);
+  const div=document.createElement('div'); div.className='thumb'+(idx===0?' active':''); div.dataset.idx=idx;
+  const img=document.createElement('img'); img.src=name; div.appendChild(img);
+  div.addEventListener('click',()=>{document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active')); div.classList.add('active'); loadImageAtIndex(idx);});
+  uiBottom.appendChild(div);
 });
 
-function loadImageAtIndex(idx){ currentImageIndex=idx; const img=new Image(); img.onload=function(){ cols=parseInt(10); rows=parseInt(10); buildFromImage(img,cols,rows); } img.src=IMAGES[idx]+'?v='+Math.random(); }
+function loadImageAtIndex(idx){
+  currentImageIndex=idx;
+  const img=new Image();
+  img.onload=function(){ buildFromImage(img,cols,rows); }
+  img.src=IMAGES[idx]+'?v='+Math.random();
+}
 
-loadImageAtIndex(0); render();
+// Inicializar
 resize();
+loadImageAtIndex(0);
+render();
+
 })();
 </script>
 </body>
