@@ -1,172 +1,147 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Poly Art 3D Interactivo</title>
-<style>
-html, body { margin:0; height:100%; background: linear-gradient(180deg,#fff,#f3f4f6); overflow:hidden; font-family:sans-serif; }
-#top-emojis { position:absolute; top:10px; left:0; right:0; text-align:center; font-size:28px; pointer-events:none; z-index:10; user-select:none; }
-#three-container { width:100%; height:100%; }
-.ui-bottom { position:absolute; bottom:0; width:100%; display:flex; overflow-x:auto; padding:10px; background:rgba(255,255,255,0.6); backdrop-filter:blur(6px); box-shadow:0 -2px 10px rgba(0,0,0,0.05); }
-.thumb { width:72px; height:56px; margin-right:10px; border:2px solid transparent; border-radius:6px; overflow:hidden; cursor:pointer; flex:0 0 auto; box-shadow:0 4px 10px rgba(0,0,0,0.05); }
-.thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-.thumb.active { border-color: rgba(96,165,250,0.85); }
-@media(max-width:600px){ .thumb{width:60px; height:46px;} }
-</style>
-</head>
-<body>
-<div id="top-emojis">🧸 ❤️ 🐥</div>
-<div id="three-container"></div>
-<div class="ui-bottom" id="ui-bottom"></div>
-
-<script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
-<script>
-(function(){
-const IMAGES=['foto1.jpeg','foto2.jpeg','foto3.jpeg','foto4.jpeg'];
-const container=document.getElementById('three-container');
-const scene=new THREE.Scene();
-const renderer=new THREE.WebGLRenderer({antialias:true, alpha:true});
-renderer.setPixelRatio(window.devicePixelRatio);
-container.appendChild(renderer.domElement);
-
-const camera=new THREE.PerspectiveCamera(50,1,0.1,2000);
-scene.add(new THREE.AmbientLight(0xffffff,0.9));
-const dirLight=new THREE.DirectionalLight(0xffffff,0.2);
-dirLight.position.set(1,1,1);
-scene.add(dirLight);
-
-let meshes=[],currentImageIndex=0;
-let cols=10, rows=10;
-
-let isPointerDown=false, lastPointer={x:0,y:0};
-let rotationX=0, rotationY=0;
-
-function getPointer(e){ return e.touches?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY}; }
-function onPointerDown(e){isPointerDown=true; lastPointer=getPointer(e);}
-function onPointerMove(e){ if(!isPointerDown) return; const p=getPointer(e); rotationY += (p.x-lastPointer.x)*0.005; rotationX += (p.y-lastPointer.y)*0.005; rotationX=Math.max(-Math.PI/2, Math.min(Math.PI/2, rotationX)); lastPointer=p;}
-function onPointerUp(){isPointerDown=false;}
-function onWheel(e){e.preventDefault(); camera.position.z += e.deltaY*0.5; camera.position.z=Math.max(200, Math.min(1000,camera.position.z));}
-
-renderer.domElement.addEventListener('mousedown',onPointerDown);
-window.addEventListener('mousemove',onPointerMove);
-window.addEventListener('mouseup',onPointerUp);
-renderer.domElement.addEventListener('touchstart',onPointerDown,{passive:true});
-window.addEventListener('touchmove',onPointerMove,{passive:true});
-window.addEventListener('touchend',onPointerUp);
-renderer.domElement.addEventListener('wheel',onWheel,{passive:false});
-
-// Construir Poly Art interactivo
-function buildFromImage(img, c, r){
-  meshes.forEach(m=>{scene.remove(m); if(m.geometry)m.geometry.dispose(); if(m.material)m.material.dispose();});
-  meshes=[];
-  const loader=new THREE.TextureLoader();
-  loader.load(img.src, texture=>{
-    texture.minFilter=THREE.LinearFilter;
-    texture.magFilter=THREE.LinearFilter;
-
-    const planeW=240;
-    const planeH=planeW*(img.height/img.width);
-    const startX=-planeW/2, startY=planeH/2;
-    const cellW=planeW/c, cellH=planeH/r;
-
-    for(let i=0;i<c;i++){
-      for(let j=0;j<r;j++){
-        const geom=new THREE.PlaneGeometry(cellW, cellH,1,1);
-        const uvAttr=geom.attributes.uv.array;
-        const u0=i/c, u1=(i+1)/c;
-        const v0=j/r, v1=(j+1)/r;
-        uvAttr[0]=u0; uvAttr[1]=1-v0;
-        uvAttr[2]=u1; uvAttr[3]=1-v0;
-        uvAttr[4]=u0; uvAttr[5]=1-v1;
-        uvAttr[6]=u1; uvAttr[7]=1-v0;
-        uvAttr[8]=u1; uvAttr[9]=1-v1;
-        uvAttr[10]=u0; uvAttr[11]=1-v1;
-        geom.attributes.uv.needsUpdate=true;
-
-        const mat=new THREE.MeshBasicMaterial({map:texture, side:THREE.DoubleSide, transparent:true});
-        const mesh=new THREE.Mesh(geom, mat);
-
-        // Posición base alineada para formar la imagen desde el ángulo perfecto
-        const baseX=startX+(i+0.5)*cellW;
-        const baseY=startY-(j+0.5)*cellH;
-        const baseZ=0;
-
-        // Offset aleatorio para dispersión inicial
-        const offsetX=(Math.random()-0.5)*80;
-        const offsetY=(Math.random()-0.5)*80;
-        const offsetZ=(Math.random()-0.5)*80;
-
-        mesh.userData.basePos=new THREE.Vector3(baseX, baseY, baseZ);
-        mesh.userData.offsetPos=new THREE.Vector3(offsetX, offsetY, offsetZ);
-
-        // Posición inicial dispersa
-        mesh.position.copy(mesh.userData.basePos.clone().add(mesh.userData.offsetPos));
-        meshes.push(mesh);
-        scene.add(mesh);
-      }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poly Art 3D</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f9f9f9, #e3e7f0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: sans-serif;
     }
 
-    camera.position.set(0,0,Math.max(planeW,planeH)*1.5);
-    camera.lookAt(0,0,0);
-  });
-}
+    #emojis {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2rem;
+      z-index: 10;
+      user-select: none;
+    }
 
-function resize(){
-  const w=container.clientWidth, h=container.clientHeight;
-  renderer.setSize(w,h);
-  camera.aspect=w/h;
-  camera.updateProjectionMatrix();
-}
-window.addEventListener('resize',resize);
+    #miniaturas {
+      position: absolute;
+      bottom: 10px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      width: 100%;
+      z-index: 10;
+    }
 
-function render(){
-  requestAnimationFrame(render);
+    .thumb {
+      width: 60px;
+      height: 40px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      object-fit: cover;
+      transition: border 0.3s;
+    }
 
-  // Aplicar rotación interactiva
-  const cosX=Math.cos(rotationX), sinX=Math.sin(rotationX);
-  const cosY=Math.cos(rotationY), sinY=Math.sin(rotationY);
+    .thumb:hover {
+      border-color: #888;
+    }
 
-  meshes.forEach(mesh=>{
-    const pos=mesh.userData.basePos.clone().add(mesh.userData.offsetPos);
-    // Rotación alrededor del centro para efecto interactivo
-    const x=pos.x, y=pos.y, z=pos.z;
-    mesh.position.set(
-      cosY*x + sinY*z,
-      -sinX*sinY*x + cosX*y - sinX*cosY*z,
-      -cosX*sinY*x + sinX*y + cosX*cosY*z
-    );
-  });
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="emojis">🐻❤️🐥</div>
+  <div id="miniaturas">
+    <img src="foto1.jpeg" class="thumb" onclick="cambiarImagen('foto1.jpeg')" />
+    <img src="foto2.jpeg" class="thumb" onclick="cambiarImagen('foto2.jpeg')" />
+    <img src="foto3.jpeg" class="thumb" onclick="cambiarImagen('foto3.jpeg')" />
+    <img src="foto4.jpeg" class="thumb" onclick="cambiarImagen('foto4.jpeg')" />
+  </div>
 
-  camera.lookAt(0,0,0);
-  renderer.render(scene,camera);
-}
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+    import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js";
+    import { OBJLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/OBJLoader.js";
 
-// Miniaturas
-const uiBottom=document.getElementById('ui-bottom');
-IMAGES.forEach((name,idx)=>{
-  const div=document.createElement('div'); div.className='thumb'+(idx===0?' active':''); div.dataset.idx=idx;
-  const img=document.createElement('img'); img.src=name; div.appendChild(img);
-  div.addEventListener('click',()=>{
-    document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active'));
-    div.classList.add('active');
-    loadImageAtIndex(idx);
-  });
-  uiBottom.appendChild(div);
-});
+    let scene, camera, renderer, controls, objeto3D, texturaActual;
 
-function loadImageAtIndex(idx){
-  currentImageIndex=idx;
-  const img=new Image();
-  img.onload=function(){ buildFromImage(img, cols, rows); };
-  img.src=IMAGES[idx];
-}
+    init();
+    animate();
 
-// Inicializar
-resize();
-loadImageAtIndex(0);
-render();
-})();
-</script>
+    function init() {
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      camera.position.z = 3;
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Luz ambiental
+      const light = new THREE.AmbientLight(0xffffff, 1);
+      scene.add(light);
+
+      // Controles de cámara
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.enablePan = false;
+      controls.enableZoom = true;
+
+      // Cargar el modelo
+      const loader = new OBJLoader();
+      loader.load("polyart.obj", (obj) => {
+        objeto3D = obj;
+        scene.add(objeto3D);
+        cambiarImagen("foto1.jpeg"); // imagen inicial
+      });
+
+      window.addEventListener("resize", onWindowResize, false);
+    }
+
+    function cambiarImagen(ruta) {
+      const loader = new THREE.TextureLoader();
+      loader.load(ruta, (textura) => {
+        texturaActual = textura;
+        if (objeto3D) {
+          objeto3D.traverse((child) => {
+            if (child.isMesh) {
+              child.material = new THREE.MeshBasicMaterial({
+                map: texturaActual,
+                side: THREE.DoubleSide,
+              });
+            }
+          });
+        }
+      });
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+  </script>
 </body>
 </html>
